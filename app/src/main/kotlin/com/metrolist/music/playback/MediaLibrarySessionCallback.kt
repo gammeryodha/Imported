@@ -836,8 +836,12 @@ constructor(
                             searchResults.firstOrNull { it.id == songId }
                         }
 
-                    if(context.dataStore.get(AutoRadioQueueKey, true)) {
-                        val radioQueue = YouTubeQueue.radio(selectedSong?.toMediaMetadata() ?: return@future defaultResult)
+                    if (!isVoiceSearch && selectedSong == null) {
+                        return@future defaultResult
+                    }
+
+                    if(context.dataStore.get(AutoRadioQueueKey, true) && selectedSong != null) {
+                        val radioQueue = YouTubeQueue.radio(selectedSong.toMediaMetadata())
                         val radioStatus = runCatching {
                             withContext(Dispatchers.IO) {
                                 radioQueue
@@ -859,14 +863,31 @@ constructor(
                         }
                     }
 
-                    val items = listOf(selectedSong?.toMediaItem() ?: return@future defaultResult)
+                    //If no specific track is found, filter the results to prioritize tracks by artist.
+                    val fallbackItems = if (isVoiceSearch && selectedSong == null) {
+                        val normalizedQuery = searchQuery.lowercase().trim()
+                        val artistMatches = searchResults.filter { song ->
+                            song.artists.any { artist ->
+                                val artistName = artist.name.lowercase()
+                                artistName.contains(normalizedQuery) || normalizedQuery.contains(artistName)
+                            }
+                        }
+                        artistMatches.ifEmpty { searchResults }
+                    } else {
+                        searchResults
+                    }
+
+                    val items = selectedSong?.let { listOf(it.toMediaItem()) } ?: fallbackItems.map { it.toMediaItem() }
+                    if (items.isEmpty()) return@future defaultResult
+
+                    val queueTitle = selectedSong?.song?.title ?: searchQuery
                     withContext(Dispatchers.Main) {
                         service.adoptQueue(
                             ListQueue(
-                                title = selectedSong.song.title,
+                                title = queueTitle,
                                 items = items,
                             ),
-                            title = selectedSong.song.title,
+                            title = queueTitle,
                         )
                     }
                     MediaItemsWithStartPosition(
