@@ -1,7 +1,5 @@
 name: Quick Test Build
 
-# Manual only: on push this built exactly the same FOSS release APK as the
-# "Build Release (foss)" job in build.yml, doubling the cost of every push.
 on:
   workflow_dispatch:
 
@@ -39,8 +37,8 @@ jobs:
       - name: Build Release APK (No Lint)
         run: ./gradlew --console=plain assembleFossRelease --warning-mode summary -x lint -x lintFossRelease
         env:
-          METROLIST_APPLICATION_ID: com.metrolist.music.test
-          METROLIST_APP_NAME: Metrolist Testing
+          METROLIST_APPLICATION_ID: com.yodha.app.test
+          METROLIST_APP_NAME: YODHA Testing
           PULL_REQUEST: "false"
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
@@ -67,3 +65,4 @@ jobs:
         with:
           name: app-universal-test-release
           path: app/build/outputs/apk/foss/release/out/*
+          
