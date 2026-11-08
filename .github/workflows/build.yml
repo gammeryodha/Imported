@@ -3,9 +3,6 @@ name: Build APKs
 on:
   workflow_dispatch:
   push:
-    # Feature branches are covered by "Build PR". Building them here too added
-    # four more APK builds on top of it for every push. Use workflow_dispatch
-    # when a branch needs nightly artifacts.
     branches: ["main"]
     paths-ignore:
       - "README.md"
@@ -33,11 +30,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # FOSS and Izzy differ from GMS only by ~80 lines of Cast stubs,
-          # plus the updater flag for Izzy (GMS and FOSS enable the updater,
-          # Izzy disables it). Both are still built by the release workflow,
-          # so building them nightly too doubled this workflow for almost no
-          # extra coverage.
           - variant: gms
             variantName: Gms
 
@@ -62,8 +54,8 @@ jobs:
       - name: Build Release APK
         run: ./gradlew --console=plain assemble${{ matrix.variantName }}Release --warning-mode summary
         env:
-          METROLIST_APPLICATION_ID: com.yodha.music
-          METROLIST_APP_NAME: YODHA 
+          METROLIST_APPLICATION_ID: com.yodha.app
+          METROLIST_APP_NAME: YODHA
           METROLIST_BUILD_COMMIT: ${{ github.sha }}
           PULL_REQUEST: "false"
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -106,11 +98,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # FOSS and Izzy differ from GMS only by ~80 lines of Cast stubs,
-          # plus the updater flag for Izzy (GMS and FOSS enable the updater,
-          # Izzy disables it). Both are still built by the release workflow,
-          # so building them nightly too doubled this workflow for almost no
-          # extra coverage.
           - variant: gms
             variantName: Gms
 
@@ -136,13 +123,11 @@ jobs:
         run: |
           echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 -d > ./app/persistent-debug.keystore
 
-      # Lint is intentionally not run in CI: it never gated a merge and added
-      # several minutes to every build. Run :app:lintGmsRelease locally.
       - name: Build Debug APK
         run: ./gradlew --console=plain assemble${{ matrix.variantName }}Debug --warning-mode summary
         env:
-          METROLIST_APPLICATION_ID: com.metrolist.music
-          METROLIST_APP_NAME: Metrolist Nightly
+          METROLIST_APPLICATION_ID: com.yodha.app
+          METROLIST_APP_NAME: YODHA Debug
           METROLIST_BUILD_COMMIT: ${{ github.sha }}
           PULL_REQUEST: "false"
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -174,7 +159,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          mv nightly/app-universal-with-Google-Cast.apk nightly/Metrolist-with-Google-Cast.apk
+          mv nightly/app-universal-with-Google-Cast.apk nightly/YODHA-with-Google-Cast.apk
 
           PREVIOUS_NIGHTLY_SHA=$(gh release view nightly --json targetCommitish --jq .targetCommitish 2>/dev/null || true)
           {
@@ -194,10 +179,11 @@ jobs:
           fi
 
           gh release create nightly \
-            nightly/YODHA.apk \
+            nightly/YODHA-with-Google-Cast.apk \
             --target "$GITHUB_SHA" \
-            --title "Metrolist Nightly" \
+            --title "YODHA Nightly" \
             --notes-file nightly-notes.md \
             --generate-notes \
             --prerelease \
             --latest=false
+            
